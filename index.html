@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -51,17 +50,6 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
   padding:11px 13px;color:var(--text);font-family:var(--sans);font-size:14px;outline:none;
 }
 #custom-name:focus{border-color:var(--accent)}
-#mode-select{margin-bottom:16px}
-#mode-select h2{font-size:11px;font-weight:600;margin-bottom:8px;color:var(--muted2);text-transform:uppercase;letter-spacing:.06em}
-.mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.mode-btn{
-  padding:11px 8px;border-radius:11px;border:1px solid var(--border);
-  background:var(--surface2);cursor:pointer;font-family:var(--sans);
-  font-size:13px;font-weight:500;color:var(--text);text-align:center;
-  transition:all .15s;display:flex;flex-direction:column;align-items:center;gap:4px;
-}
-.mode-btn .mi{font-size:22px}
-.mode-btn:active,.mode-btn.selected{border-color:var(--accent);background:rgba(59,130,246,.15);color:var(--accent2)}
 #login-btn{
   width:100%;padding:14px;border-radius:12px;border:none;
   background:var(--accent);color:#fff;font-family:var(--sans);
@@ -183,8 +171,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 .ab-und{border-color:rgba(245,158,11,.3);background:rgba(245,158,11,.06);color:var(--amber)}
 .ab-opp{border-color:rgba(239,68,68,.3);background:rgba(239,68,68,.06);color:#f87171}
 .ab-nh{border-color:var(--border);background:var(--surface2);color:var(--muted2)}
-.ab-phone{border-color:rgba(167,139,250,.4);background:rgba(167,139,250,.08);color:var(--purple)}
-.ab-sk{color:var(--muted)}
+.ab-sk{border-color:var(--border);background:var(--surface2);color:var(--muted)}
 
 .vnote{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:7px 10px;color:var(--text);font-family:var(--sans);font-size:12px;outline:none;margin-top:4px}
 .vnote:focus{border-color:var(--accent)}
@@ -252,14 +239,6 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
       <input id="custom-name" type="text" placeholder="Your name…" oninput="onCustomName()">
     </div>
 
-    <div id="mode-select">
-      <h2 style="font-size:11px;font-weight:600;color:var(--muted2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">What are you doing today?</h2>
-      <div class="mode-grid">
-        <button class="mode-btn" onclick="selectMode(this,'walk')"><span class="mi">🚶</span>Door Knocking</button>
-        <button class="mode-btn" onclick="selectMode(this,'phone')"><span class="mi">📞</span>Phone Banking</button>
-      </div>
-    </div>
-
     <button id="login-btn" onclick="doLogin()">Start Canvassing</button>
     <div id="login-status">Connecting to campaign database…</div>
   </div>
@@ -306,7 +285,6 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
     <button class="fb"     onclick="setFilter('lean',this,'on-green')">~ Lean</button>
     <button class="fb"     onclick="setFilter('und',this,'on-amber')">? Undecided</button>
     <button class="fb"     onclick="setFilter('nh',this,'on')">🚪 Not Home</button>
-    <button class="fb"     onclick="setFilter('phone',this,'on-purple')">📞 Phone</button>
     <button class="fb"     onclick="setFilter('undone',this,'on')">○ Uncontacted</button>
   </div>
 </div>
@@ -436,12 +414,12 @@ function initFirebase(){
   });
 }
 
-function pushContact(voterId, voterData, result, note, by, mode){
+function pushContact(voterId, voterData, result, note, by){
   setSyncDot("sync");
   const contactsRef = ref(db, "contacts");
   const newRef = push(contactsRef);
   set(newRef, {
-    voterId, result, note, by, mode,
+    voterId, result, note, by,
     ts:        new Date().toISOString(),
     name:      voterData.name,
     address:   voterData.address,
@@ -464,7 +442,6 @@ function setSyncDot(state){
 
 // ── LOGIN ─────────────────────────────────────────────────────────────────
 let selVolName = null;
-let selMode    = null;
 
 function selectVol(btn, name){
   document.querySelectorAll(".vol-btn").forEach(b=>b.classList.remove("selected"));
@@ -482,35 +459,26 @@ function onCustomName(){
 }
 window.onCustomName = onCustomName;
 
-function selectMode(btn, mode){
-  document.querySelectorAll(".mode-btn").forEach(b=>b.classList.remove("selected"));
-  btn.classList.add("selected");
-  selMode = mode;
-  checkLoginReady();
-}
-window.selectMode = selectMode;
-
 function checkLoginReady(){
-  const ready = selVolName && selMode;
+  const ready = selVolName;
   const btn = document.getElementById("login-btn");
   btn.classList.toggle("ready", !!ready);
 }
 
 function doLogin(){
-  if(!selVolName || !selMode) return;
-  currentUser = { name: selVolName, mode: selMode };
+  if(!selVolName) return;
+  currentUser = { name: selVolName };
   document.getElementById("login-screen").style.display = "none";
-  document.getElementById("header-vol").textContent =
-    selVolName + " · " + (selMode === "walk" ? "🚶 Door Knocking" : "📞 Phone Banking");
+  document.getElementById("header-vol").textContent = selVolName + " · 🚶 Door Knocking";
   buildRouteList();
   updateHeader();
 }
 window.doLogin = doLogin;
 
 function switchUser(){
-  selVolName = null; selMode = null;
+  selVolName = null;
   document.getElementById("login-screen").style.display = "flex";
-  document.querySelectorAll(".vol-btn,.mode-btn").forEach(b=>b.classList.remove("selected"));
+  document.querySelectorAll(".vol-btn").forEach(b=>b.classList.remove("selected"));
   document.getElementById("custom-name").value = "";
   document.getElementById("login-btn").classList.remove("ready");
   goHome();
@@ -537,7 +505,7 @@ function getDoorTouches(door){ return Math.max(0,...door.voters.map(v=>getTouche
 function sal(sex){ return {M:"Mr.",F:"Ms."}[sex]||""; }
 function pty(p){ return {D:"Dem",R:"Rep",O:"Oth",I:"Ind",L:"Lib"}[p]||p; }
 function rStyle(res){
-  return {"Support":"background:rgba(34,197,94,.2);color:#22c55e","Lean Support":"background:rgba(96,165,250,.2);color:#60a5fa","Undecided":"background:rgba(245,158,11,.2);color:#f59e0b","Oppose":"background:rgba(239,68,68,.2);color:#f87171","Not Home":"background:rgba(100,116,139,.2);color:#94a3b8","Phone — Support":"background:rgba(167,139,250,.2);color:#a78bfa","Phone — Not Home":"background:rgba(100,116,139,.2);color:#94a3b8","Skip":"background:rgba(100,116,139,.15);color:#64748b"}[res]||"";
+  return {"Support":"background:rgba(34,197,94,.2);color:#22c55e","Lean Support":"background:rgba(96,165,250,.2);color:#60a5fa","Undecided":"background:rgba(245,158,11,.2);color:#f59e0b","Oppose":"background:rgba(239,68,68,.2);color:#f87171","Not Home":"background:rgba(100,116,139,.2);color:#94a3b8","Skip":"background:rgba(100,116,139,.15);color:#64748b"}[res]||"";
 }
 
 // ── FILTER ────────────────────────────────────────────────────────────────
@@ -558,7 +526,6 @@ function doorMatchesFilter(d){
     case "lean":   return results.some(r=>r==="Lean Support");
     case "und":    return results.some(r=>r==="Undecided");
     case "nh":     return results.some(r=>r==="Not Home");
-    case "phone":  return results.some(r=>r&&r.startsWith("Phone"));
     case "undone": return d.voters.some(v=>!allResults[v.id]);
     default: return true;
   }
@@ -725,21 +692,13 @@ function renderDoor(){
     });
     histHtml+=`</div>`;
 
-    // Action buttons — show phone variants if mode is phone
-    const isPhone=currentUser?.mode==="phone";
-    const actionsHtml=isPhone?`
-      <button class="ab ab-sup"   onclick="logVoter('${v.id}','Phone — Support')"><span class="ai">📞</span>Support</button>
-      <button class="ab ab-lean"  onclick="logVoter('${v.id}','Lean Support')"><span class="ai">🤝</span>Leans</button>
-      <button class="ab ab-und"   onclick="logVoter('${v.id}','Undecided')"><span class="ai">🤔</span>Undecided</button>
-      <button class="ab ab-opp"   onclick="logVoter('${v.id}','Oppose')"><span class="ai">👎</span>Oppose</button>
-      <button class="ab ab-nh"    onclick="logVoter('${v.id}','Phone — Not Home')"><span class="ai">📵</span>No Answer</button>
-      <button class="ab ab-sk"    onclick="logVoter('${v.id}','Skip')"><span class="ai">⏭</span>Skip</button>`:`
+    const actionsHtml=`
       <button class="ab ab-sup"   onclick="logVoter('${v.id}','Support')"><span class="ai">👍</span>Support</button>
       <button class="ab ab-lean"  onclick="logVoter('${v.id}','Lean Support')"><span class="ai">🤝</span>Leans</button>
       <button class="ab ab-und"   onclick="logVoter('${v.id}','Undecided')"><span class="ai">🤔</span>Undecided</button>
       <button class="ab ab-opp"   onclick="logVoter('${v.id}','Oppose')"><span class="ai">👎</span>Oppose</button>
       <button class="ab ab-nh"    onclick="logVoter('${v.id}','Not Home')"><span class="ai">🚪</span>Not Home</button>
-      <button class="ab ab-phone" onclick="logVoter('${v.id}','Phone — Support')"><span class="ai">📞</span>Phone</button>`;
+      <button class="ab ab-sk"    onclick="logVoter('${v.id}','Skip')"><span class="ai">⏭</span>Skip</button>`;
 
     const row=document.createElement("div");
     row.className="vrow";
@@ -799,7 +758,7 @@ function logVoter(voterId,result){
     address:door.address,route:currentRoute,precinct:door.precinct,
     tier:v.tier===1?"High":v.tier===2?"Medium":"Low",
     party:v.party,age:v.age,genCount:v.genCount
-  },result,note,currentUser.name,currentUser.mode);
+  },result,note,currentUser.name);
   const tc=getTouches(voterId)+1;
   showToast(v.firstName+": "+result+(tc>1?" (touch "+tc+")":""));
   const allDone=door.voters.every(x=>allResults[x.id]||x.id===voterId);
@@ -812,10 +771,10 @@ function openStats(){
   const all=Object.values(allResults);
   const touched=all.length;
   const totalTouches=all.reduce((s,r)=>s+(r.touches?r.touches.length:1),0);
-  const resultColors={"Support":"#22c55e","Lean Support":"#60a5fa","Undecided":"#f59e0b","Oppose":"#f87171","Not Home":"#94a3b8","Phone — Support":"#a78bfa","Phone — Not Home":"#64748b","Skip":"#475569"};
+  const resultColors={"Support":"#22c55e","Lean Support":"#60a5fa","Undecided":"#f59e0b","Oppose":"#f87171","Not Home":"#94a3b8","Skip":"#475569"};
   const counts={};
   all.forEach(r=>{ counts[r.result]=(counts[r.result]||0)+1; });
-  const fav=(counts["Support"]||0)+(counts["Lean Support"]||0)+(counts["Phone — Support"]||0);
+  const fav=(counts["Support"]||0)+(counts["Lean Support"]||0);
 
   // Volunteer leaderboard from all touches
   const volCounts={};
@@ -824,7 +783,7 @@ function openStats(){
       if(!t.by) return;
       if(!volCounts[t.by]) volCounts[t.by]={touches:0,support:0};
       volCounts[t.by].touches++;
-      if(t.result==="Support"||t.result==="Lean Support"||t.result==="Phone — Support") volCounts[t.by].support++;
+      if(t.result==="Support"||t.result==="Lean Support") volCounts[t.by].support++;
     });
   });
 
