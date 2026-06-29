@@ -130,8 +130,16 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 #walk-lbl{font-size:13px;font-weight:600;flex:1}
 #walk-ct{font-family:var(--mono);font-size:11px;color:var(--muted2)}
 
-#door-area{flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:8px}
-#door-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+#door-area{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:10px;display:flex;flex-direction:column;gap:8px;scrollbar-width:thin;scrollbar-color:var(--accent) var(--surface2)}
+#door-area::-webkit-scrollbar{width:8px}
+#door-area::-webkit-scrollbar-track{background:var(--surface2)}
+#door-area::-webkit-scrollbar-thumb{background:var(--accent);border-radius:4px}
+#door-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:visible}
+#hh-jump{display:none;gap:6px;padding:8px 14px;background:var(--surface2);border-bottom:1px solid var(--border);overflow-x:auto;-webkit-overflow-scrolling:touch}
+#hh-jump::-webkit-scrollbar{display:none}
+.hh-jump-btn{flex-shrink:0;padding:6px 11px;border-radius:20px;border:1px solid var(--border);background:var(--bg);color:var(--muted2);font-family:var(--sans);font-size:11px;font-weight:500;cursor:pointer;white-space:nowrap;transition:all .15s}
+.hh-jump-btn.active{border-color:var(--accent);background:rgba(59,130,246,.15);color:var(--accent2)}
+.hh-jump-btn.logged{border-color:rgba(34,197,94,.4);color:var(--green)}
 
 #door-hdr{padding:11px 14px 9px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:10px}
 #door-badge{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;font-weight:700;margin-top:2px}
@@ -322,6 +330,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
           <div id="door-touches-badge"></div>
         </div>
       </div>
+      <div id="hh-jump"></div>
       <div id="voters-section"></div>
     </div>
     <button id="maps-btn" onclick="openMaps()">🗺 Drop pin — Open in Maps</button>
@@ -702,6 +711,19 @@ function renderDoor(){
 
   const sec=document.getElementById("voters-section");
   sec.innerHTML="";
+
+  const jumpBar=document.getElementById("hh-jump");
+  if(door.count>1){
+    jumpBar.style.display="flex";
+    jumpBar.innerHTML=door.voters.map((v,vi)=>{
+      const logged=!!getLatest(v.id);
+      return `<button class="hh-jump-btn${logged?" logged":""}" id="jump-${v.id}" onclick="jumpToVoter('${v.id}')">${logged?"✓ ":""}${v.firstName}</button>`;
+    }).join("");
+  } else {
+    jumpBar.style.display="none";
+    jumpBar.innerHTML="";
+  }
+
   door.voters.forEach((v,vi)=>{
     const lr=getLatest(v.id);
     const touches=allResults[v.id]?.touches||[];
@@ -734,6 +756,7 @@ function renderDoor(){
 
     const row=document.createElement("div");
     row.className="vrow";
+    row.id="vrow-"+v.id;
     row.innerHTML=`
       <div class="vrow-top">
         <div class="vname-block">
@@ -781,6 +804,15 @@ function openMaps(){
 window.openMaps=openMaps;
 
 // ── LOG ───────────────────────────────────────────────────────────────────
+function jumpToVoter(voterId){
+  const row=document.getElementById("vrow-"+voterId);
+  if(row) row.scrollIntoView({behavior:"smooth",block:"start"});
+  document.querySelectorAll(".hh-jump-btn").forEach(b=>b.classList.remove("active"));
+  const btn=document.getElementById("jump-"+voterId);
+  if(btn) btn.classList.add("active");
+}
+window.jumpToVoter=jumpToVoter;
+
 function logVoter(voterId,result){
   const door=filteredDoors[currentIdx];
   const v=door.voters.find(x=>x.id===voterId);
@@ -862,20 +894,6 @@ window.maybeCloseStats=maybeCloseStats;
 // ── TOAST ─────────────────────────────────────────────────────────────────
 let tTimer;
 function showToast(msg){const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");clearTimeout(tTimer);tTimer=setTimeout(()=>t.classList.remove("show"),2200);}
-
-// ── ERROR REPORTING (temporary diagnostic) ──────────────────────────────
-window.onerror = function(msg, src, line, col, err){
-  const box = document.createElement('div');
-  box.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#7f1d1d;color:#fff;padding:12px;font-family:monospace;font-size:11px;z-index:9999;white-space:pre-wrap;max-height:50vh;overflow:auto';
-  box.textContent = 'JS ERROR: ' + msg + '\nLine: ' + line + ':' + col + '\nStack: ' + (err && err.stack ? err.stack : 'n/a');
-  document.body.appendChild(box);
-  return false;
-};
-window.__debug = () => ({
-  filteredDoors, currentIdx, currentRoute, searchTerm,
-  currentDoor: filteredDoors[currentIdx],
-  voterNames: filteredDoors[currentIdx] ? filteredDoors[currentIdx].voters.map(v=>v.firstName) : null
-});
 
 // ── START ─────────────────────────────────────────────────────────────────
 initFirebase();
