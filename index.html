@@ -549,21 +549,42 @@ window.setFilter = setFilter;
 function onSearch(){
   searchTerm=document.getElementById("search-box").value.trim();
   document.getElementById("clear-search").style.display=searchTerm?"block":"none";
-  if(currentRoute!==null){ applyFiltersToRoute(); renderDoor(); }
-  else buildRouteList();
+  if(searchTerm){
+    // Enter search mode: show matching doors across ALL routes immediately
+    filteredDoors=ALL_DOORS.filter(d=>doorMatchesFilter(d)&&doorMatchesSearch(d));
+    currentIdx=0;
+    currentRoute='search';
+    document.getElementById("route-screen").style.display="none";
+    document.getElementById("walk-screen").style.display="flex";
+    document.getElementById("back-btn").textContent="← Routes";
+    updateStatsBar(filteredDoors);
+    renderDoor();
+  } else {
+    currentRoute=null;
+    document.getElementById("walk-screen").style.display="none";
+    document.getElementById("route-screen").style.display="flex";
+    buildRouteList();
+  }
 }
 window.onSearch = onSearch;
 
 function clearSearch(){
   document.getElementById("search-box").value="";searchTerm="";
   document.getElementById("clear-search").style.display="none";
-  if(currentRoute!==null){ applyFiltersToRoute(); renderDoor(); }
-  else buildRouteList();
+  currentRoute=null;
+  document.getElementById("walk-screen").style.display="none";
+  document.getElementById("route-screen").style.display="flex";
+  buildRouteList();
 }
 window.clearSearch = clearSearch;
 
 function applyFiltersToRoute(){
-  filteredDoors=(ROUTE_MAP[currentRoute]||[]).filter(d=>doorMatchesFilter(d)&&doorMatchesSearch(d));
+  if(searchTerm){
+    // Global search: search across ALL routes, not just current one
+    filteredDoors=ALL_DOORS.filter(d=>doorMatchesFilter(d)&&doorMatchesSearch(d));
+  } else {
+    filteredDoors=(ROUTE_MAP[currentRoute]||[]).filter(d=>doorMatchesFilter(d)&&doorMatchesSearch(d));
+  }
   currentIdx=0; updateStatsBar(filteredDoors);
 }
 
@@ -632,6 +653,9 @@ window.startRoute=startRoute;
 function goHome(){
   document.getElementById("walk-screen").style.display="none";
   document.getElementById("route-screen").style.display="flex";
+  document.getElementById("search-box").value="";
+  document.getElementById("clear-search").style.display="none";
+  searchTerm="";
   currentRoute=null;filteredDoors=[];
   buildRouteList();updateHeader();
 }
@@ -650,6 +674,9 @@ function renderDoor(){
   const done=filteredDoors.filter(d=>d.voters.every(v=>allResults[v.id])).length;
   document.getElementById("walk-ct").textContent=done+"/"+total;
   document.getElementById("door-pos").textContent=(currentIdx+1)+" of "+total;
+  if(searchTerm){
+    document.getElementById("walk-lbl").textContent="Search: \""+searchTerm+"\" · Route "+door.route;
+  }
   document.getElementById("prev-btn").disabled=currentIdx===0;
   document.getElementById("next-btn").disabled=currentIdx===total-1;
   const allDone=filteredDoors.every(d=>d.voters.every(v=>allResults[v.id]));
