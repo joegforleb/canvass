@@ -863,6 +863,15 @@ window.maybeCloseStats=maybeCloseStats;
 let tTimer;
 function showToast(msg){const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");clearTimeout(tTimer);tTimer=setTimeout(()=>t.classList.remove("show"),2200);}
 
+// ── ERROR REPORTING (temporary diagnostic) ──────────────────────────────
+window.onerror = function(msg, src, line, col, err){
+  const box = document.createElement('div');
+  box.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#7f1d1d;color:#fff;padding:12px;font-family:monospace;font-size:11px;z-index:9999;white-space:pre-wrap;max-height:50vh;overflow:auto';
+  box.textContent = 'JS ERROR: ' + msg + '\nLine: ' + line + ':' + col + '\nStack: ' + (err && err.stack ? err.stack : 'n/a');
+  document.body.appendChild(box);
+  return false;
+};
+
 // ── START ─────────────────────────────────────────────────────────────────
 initFirebase();
 </script>
