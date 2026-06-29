@@ -871,6 +871,11 @@ window.onerror = function(msg, src, line, col, err){
   document.body.appendChild(box);
   return false;
 };
+window.__debug = () => ({
+  filteredDoors, currentIdx, currentRoute, searchTerm,
+  currentDoor: filteredDoors[currentIdx],
+  voterNames: filteredDoors[currentIdx] ? filteredDoors[currentIdx].voters.map(v=>v.firstName) : null
+});
 
 // ── START ─────────────────────────────────────────────────────────────────
 initFirebase();
